@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Adhesive.Core", "Adhesive.C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Adhesive.Cli", "Adhesive.Cli\Adhesive.Cli.csproj", "{280385CE-E7E3-4768-BE8D-E36F8A7DB8E4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Adhesive.Application", "Adhesive.Application\Adhesive.Application.csproj", "{3855E3C6-45CA-4221-88A4-500FAC84C307}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,16 @@ Global
 		{280385CE-E7E3-4768-BE8D-E36F8A7DB8E4}.Release|Mixed Platforms.Build.0 = Release|x86
 		{280385CE-E7E3-4768-BE8D-E36F8A7DB8E4}.Release|x86.ActiveCfg = Release|x86
 		{280385CE-E7E3-4768-BE8D-E36F8A7DB8E4}.Release|x86.Build.0 = Release|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Debug|x86.ActiveCfg = Debug|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Debug|x86.Build.0 = Debug|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Release|Any CPU.ActiveCfg = Release|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Release|Mixed Platforms.Build.0 = Release|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Release|x86.ActiveCfg = Release|x86
+		{3855E3C6-45CA-4221-88A4-500FAC84C307}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
