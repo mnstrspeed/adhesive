@@ -58,7 +58,7 @@ namespace Adhesive.Core
 
         private void DrawScreen(Bitmap wallpaper, Bitmap image, Screen screen)
         {
-            if (screen.BoundsInSurface.X >= 0 && screen.BoundsInSurface.Y >= 0)
+            if (screen.BoundsInSurface.X >= 0 && screen.BoundsInSurface.Y >= 0) // Needs optimization: doesn't cross x=0 or y=0
             {
                 this.DrawScreenRectangle(wallpaper, image, screen);
             }

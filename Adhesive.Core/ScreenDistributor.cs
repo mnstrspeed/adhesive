@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Collections.Generic;
 using System.Drawing;
 
 namespace Adhesive.Core
@@ -22,21 +21,8 @@ namespace Adhesive.Core
             Point offset = this.DetermineOffset();
             foreach (Screen screen in this.screenConfiguration.Screens)
             {
-                Rectangle leftNeighborRegion = new Rectangle(
-                    offset.X, 
-                    screen.BoundsInSurface.Y, 
-                    screen.BoundsInSurface.X - offset.X, 
-                    screen.BoundsInSurface.Height);
-                Rectangle topNeighborRegion = new Rectangle(
-                    screen.BoundsInSurface.X,
-                    offset.Y,
-                    screen.BoundsInSurface.Width,
-                    screen.BoundsInSurface.Y - offset.Y);
-
-                int leftNeighborCount = this.screenConfiguration.Screens.Where(
-                    s => s.BoundsInSurface.IntersectsWith(leftNeighborRegion)).Count();
-                int topNeighborCount = this.screenConfiguration.Screens.Where(
-                    s => s.BoundsInSurface.IntersectsWith(topNeighborRegion)).Count();
+                int leftNeighborCount = this.DetermineLeftNeighborCount(screen, offset);
+                int topNeighborCount = this.DetermineTopNeighborCount(screen, offset);
 
                 screen.BoundsInImage = new Rectangle(
                     (screen.BoundsInSurface.X - offset.X) + (leftNeighborCount * this.BezelCompensation),
@@ -52,5 +38,30 @@ namespace Adhesive.Core
                 bounds.Min(b => b.X),
                 bounds.Min(b => b.Y));
         }
+
+        private int DetermineLeftNeighborCount(Screen screen, Point offset)
+        {
+            Rectangle leftNeighborRegion = new Rectangle(
+                    offset.X,
+                    screen.BoundsInSurface.Y,
+                    screen.BoundsInSurface.X - offset.X,
+                    screen.BoundsInSurface.Height);
+
+            return this.screenConfiguration.Screens.Where(
+                    s => s.BoundsInSurface.IntersectsWith(leftNeighborRegion)).Count();
+        }
+
+        private int DetermineTopNeighborCount(Screen screen, Point offset)
+        {
+            Rectangle topNeighborRegion = new Rectangle(
+                    screen.BoundsInSurface.X,
+                    offset.Y,
+                    screen.BoundsInSurface.Width,
+                    screen.BoundsInSurface.Y - offset.Y);
+
+            return this.screenConfiguration.Screens.Where(
+                    s => s.BoundsInSurface.IntersectsWith(topNeighborRegion)).Count();
+        }
+
     }
 }
