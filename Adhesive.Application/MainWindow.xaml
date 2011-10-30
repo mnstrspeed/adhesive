@@ -2,10 +2,10 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:adhesive="clr-namespace:Adhesive.Application"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="CenterScreen" x:Name="root"
         Title="Adhesive" Height="455" Width="750" Background="Black">
     <DockPanel>
-        <adhesive:WallpaperPreview x:Name="wallpaperPreview" Height="350" DockPanel.Dock="Top" />
+        <adhesive:WallpaperPreview x:Name="wallpaperPreview" Height="350" DockPanel.Dock="Top" ImagePath="{Binding ImagePath, ElementName=root, Mode=OneWay}" />
         <DockPanel DockPanel.Dock="Bottom">
             <StackPanel Orientation="Vertical" DockPanel.Dock="Left">
                 <StackPanel Orientation="Horizontal">

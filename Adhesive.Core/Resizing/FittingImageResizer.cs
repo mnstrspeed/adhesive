@@ -13,27 +13,9 @@ namespace Adhesive.Core.Resizing
         protected override void ResizeImage(Graphics graphics, Image original, 
             double originalAspectRatio, double targetAspectRatio)
         {
-            int targetWidth = (int)graphics.VisibleClipBounds.Width;
-            int targetHeight = (int)graphics.VisibleClipBounds.Height;
-            Point targetPosition = new Point { X = 0, Y = 0 };
-
-            if (originalAspectRatio > targetAspectRatio)
-            {
-                // Maintain aspect ratio by adjusting the height,
-                // black borders on top and bottom
-                targetHeight = (int)Math.Round(targetWidth / originalAspectRatio);
-                targetPosition.Y = ((int)graphics.VisibleClipBounds.Height - targetHeight) / 2;
-            }
-            else if (originalAspectRatio < targetAspectRatio)
-            {
-                // Maintain aspect ratio by adjusting the width,
-                // black borders on left and right
-                targetWidth = (int)Math.Round(originalAspectRatio * targetHeight);
-                targetPosition.X = ((int)graphics.VisibleClipBounds.Width - targetWidth) / 2;
-            }
-
-            graphics.DrawImage(original, targetPosition.X, targetPosition.Y,
-                targetWidth, targetHeight);
+            Rectangle target = RectangleResizing.Fit(Rectangle.Round(graphics.VisibleClipBounds),
+                targetAspectRatio, originalAspectRatio);
+            graphics.DrawImage(original, target);
         }
     }
 }

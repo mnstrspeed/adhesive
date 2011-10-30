@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows;
 using Adhesive.Core;
+using Adhesive.Core.Resizing;
 using System.IO;
 using System.Windows.Media.Imaging;
 
@@ -10,32 +11,75 @@ namespace Adhesive.Application
 {
     public class WallpaperPreview : UserControl
     {
-        public ScreenConfiguration ScreenConfiguration { get; set; }
-        public Adhesive.Core.Resizing.IImageResizer ImageResizer { get; set; }
-        public string ImagePath { get; private set; }
+        private ScreenConfiguration screenConfiguration;
+
+        /// <summary>
+        /// ScreenConfiguration to preview the wallpaper on
+        /// </summary>
+        public ScreenConfiguration ScreenConfiguration
+        { 
+            get
+            {
+                return this.screenConfiguration;
+            }
+            set
+            {
+                if (this.screenConfiguration != null)
+                {
+                    this.screenConfiguration.Changed -= new ChangedEventHandler(ScreenConfigurationChanged);
+                }
+                this.screenConfiguration = value;
+                this.screenConfiguration.Changed += new ChangedEventHandler(ScreenConfigurationChanged);
+            }   
+        }
+
+        /// <summary>
+        /// ImageResizer used to resize the wallpaper image
+        /// </summary>
+        public IImageResizer ImageResizer { get; set; }
+
+        public static readonly DependencyProperty ImagePathProperty =
+            DependencyProperty.Register("ImagePath", typeof(string), typeof(WallpaperPreview), 
+            new UIPropertyMetadata(ImagePathPropertyChanged));
+
+        public static void ImagePathPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            WallpaperPreview wallpaperPreview = d as WallpaperPreview;
+            wallpaperPreview.LoadImage();
+        }
+
+        /// <summary>
+        /// Path to the wallpaper image to preview
+        /// </summary>
+        public string ImagePath 
+        { 
+            get
+            {
+                return GetValue(ImagePathProperty) as string;
+            }
+            set
+            {
+                SetValue(ImagePathProperty, value);
+                //this.LoadImage();
+            }
+        }
 
         private System.Drawing.Image image;
 
-        public WallpaperPreview()
+        /// <summary>
+        /// Triggered whenever the ScreenConfiguration has changed
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void ScreenConfigurationChanged(object sender, EventArgs e)
         {
-            this.AllowDrop = true;
-            this.Drop += new DragEventHandler(WallpaperPreview_Drop);
+            this.InvalidateVisual();
         }
 
-        void WallpaperPreview_Drop(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
-
-                try
-                {
-                    this.image = System.Drawing.Image.FromFile(files[0]);
-                    this.ImagePath = files[0];
-                    this.InvalidateVisual();
-                }
-                catch { }
-            }
+        private void LoadImage()
+        {   
+            this.image = System.Drawing.Image.FromFile(this.ImagePath);
+            this.InvalidateVisual();
         }
 
         protected override void OnRender(DrawingContext drawingContext)
@@ -73,66 +117,60 @@ namespace Adhesive.Application
 
         private void DrawPreview(DrawingContext drawingContext)
         {
-            Rect availableRegion = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
-            double availableRegionAspectRatio = availableRegion.Width / availableRegion.Height;
-            double screenSurfaceAspectRatio = (double)this.ScreenConfiguration.ImageSurfaceBounds.Width /
-                (double)this.ScreenConfiguration.ImageSurfaceBounds.Height;
+            // Determine resized virtual screen bounds
+            Rect controlBounds = new Rect(0, 0, this.ActualWidth, this.ActualHeight);
+            double controlBoundsAspectRatio = controlBounds.Width / controlBounds.Height;
+            double screenSurfaceAspectRatio = (double)this.ScreenConfiguration.VirtualScreenBounds.Width /
+                (double)this.ScreenConfiguration.VirtualScreenBounds.Height;
  
-            Rect targetRegion = availableRegion;
-            if (screenSurfaceAspectRatio > availableRegionAspectRatio)
+            Rect previewBounds = controlBounds;
+            if (screenSurfaceAspectRatio > controlBoundsAspectRatio)
             {
-                targetRegion.Height = targetRegion.Width / screenSurfaceAspectRatio;
-                targetRegion.Y = (availableRegion.Height - targetRegion.Height) / 2;
+                previewBounds.Height = previewBounds.Width / screenSurfaceAspectRatio;
+                previewBounds.Y = (controlBounds.Height - previewBounds.Height) / 2;
             }
-            else if (screenSurfaceAspectRatio < availableRegionAspectRatio)
+            else if (screenSurfaceAspectRatio < controlBoundsAspectRatio)
             {
-                targetRegion.Width = screenSurfaceAspectRatio * targetRegion.Height;
-                targetRegion.X = (availableRegion.Width - targetRegion.Width) / 2;
+                previewBounds.Width = screenSurfaceAspectRatio * previewBounds.Height;
+                previewBounds.X = (controlBounds.Width - previewBounds.Width) / 2;
             }
-            double scale = targetRegion.Width / this.ScreenConfiguration.ImageSurfaceBounds.Width;
+            double scale = previewBounds.Width / this.ScreenConfiguration.VirtualScreenBounds.Width;
 
-            Geometry geometry = new RectangleGeometry(new Rect(0, 0, 0, 0));
-
+            // Resize System.Drawing.Image and convert back into System.Windows.Drawing.Image
             System.Drawing.Image resizedImage = this.ImageResizer.ResizeImage(
-                this.image, (int)targetRegion.Width, (int)targetRegion.Height);
-            BitmapImage resizedBitmapImage = new BitmapImage();
-            resizedBitmapImage.BeginInit();
-            MemoryStream ms = new MemoryStream();
-            resizedImage.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
-            ms.Seek(0, SeekOrigin.Begin);
-            resizedBitmapImage.StreamSource = ms;
-            resizedBitmapImage.EndInit();
+                this.image, (int)previewBounds.Width, (int)previewBounds.Height);
+            // TODO: scaling? [CenteringImageResizer]
+            BitmapImage resizedBitmapImage = resizedImage.ToWpfBitmap();
 
+            // Draw Image
             this.VisualBitmapScalingMode = BitmapScalingMode.HighQuality;
-            drawingContext.DrawImage(resizedBitmapImage, targetRegion);
+            drawingContext.DrawImage(resizedBitmapImage, previewBounds);
 
+            Geometry combinedScreenGeometry = new RectangleGeometry(new Rect(0, 0, 0, 0));
             foreach (Adhesive.Core.Screen screen in this.ScreenConfiguration.Screens)
             {
-                Geometry screenGeometry = new RectangleGeometry(new Rect(
-                    targetRegion.X + scale * screen.BoundsInImage.X,
-                    targetRegion.Y + scale * screen.BoundsInImage.Y,
-                    scale * screen.BoundsInImage.Width,
-                    scale * screen.BoundsInImage.Height));
-                CombinedGeometry combined = new CombinedGeometry(
-                    GeometryCombineMode.Union, geometry, screenGeometry);
-                geometry = combined;
+                Rect boundsInPreview = new Rect(
+                    previewBounds.X + scale * screen.BoundsInVirtualScreen.X,
+                    previewBounds.Y + scale * screen.BoundsInVirtualScreen.Y,
+                    scale * screen.BoundsInVirtualScreen.Width,
+                    scale * screen.BoundsInVirtualScreen.Height);
 
-                Rect destinationRect = new Rect(
-                    targetRegion.X + scale * screen.BoundsInImage.X,
-                    targetRegion.Y + scale * screen.BoundsInImage.Y,
-                    scale * screen.BoundsInImage.Width,
-                    scale * screen.BoundsInImage.Height);
-                drawingContext.DrawRectangle(null, new Pen(Brushes.White, 2), destinationRect);
+                Geometry screenGeometry = new RectangleGeometry(boundsInPreview);
+                // Add Screen Bounds to Geometry of all Screens
+                combinedScreenGeometry = new CombinedGeometry(GeometryCombineMode.Union, 
+                    combinedScreenGeometry, screenGeometry); ;
+
+                // Draw Screen
+                drawingContext.DrawRectangle(null, new Pen(Brushes.White, 2), boundsInPreview);
             }
 
+            // Black out excluded region over image
             CombinedGeometry excludedRegion = new CombinedGeometry(
-                GeometryCombineMode.Exclude, new RectangleGeometry(targetRegion), geometry);
+                GeometryCombineMode.Exclude, new RectangleGeometry(previewBounds), combinedScreenGeometry);
             Brush brush = new SolidColorBrush(Colors.Black);
             brush.Opacity = 0.7;
 
             drawingContext.DrawGeometry(brush, null, excludedRegion);
-            //drawingContext.DrawRectangle(Brushes.Black, new Pen(Brushes.White, 2), targetRegion);
-            //drawingContext.DrawImage(this.image, new Rect(0, 0, this.ActualWidth, this.ActualHeight));
         }
 
     }

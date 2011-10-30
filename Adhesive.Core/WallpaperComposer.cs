@@ -19,8 +19,8 @@ namespace Adhesive.Core
         {
             Image originalImage = parameters.ImageProvider.GetImage();
             Image resizedImage = parameters.ImageResizer.ResizeImage(originalImage,
-                this.screenConfiguration.ImageSurfaceBounds.Width,
-                this.screenConfiguration.ImageSurfaceBounds.Height);
+                this.screenConfiguration.VirtualScreenBounds.Width,
+                this.screenConfiguration.VirtualScreenBounds.Height);
 
             //this.SaveDebugImage(resizedImage);
 
@@ -44,8 +44,8 @@ namespace Adhesive.Core
         private Image ComposeWallpaper(Image resizedImage)
         {
             Bitmap wallpaper = new Bitmap(
-                this.screenConfiguration.SurfaceBounds.Width,
-                this.screenConfiguration.SurfaceBounds.Height);
+                this.screenConfiguration.MergedBounds.Width,
+                this.screenConfiguration.MergedBounds.Height);
             Bitmap image = new Bitmap(resizedImage);
 
             foreach (Screen screen in this.screenConfiguration.Screens)
@@ -58,7 +58,7 @@ namespace Adhesive.Core
 
         private void DrawScreen(Bitmap wallpaper, Bitmap image, Screen screen)
         {
-            if (screen.BoundsInSurface.X >= 0 && screen.BoundsInSurface.Y >= 0) // Needs optimization: doesn't cross x=0 or y=0
+            if (screen.Bounds.X >= 0 && screen.Bounds.Y >= 0) // Needs optimization: doesn't cross x=0 or y=0
             {
                 this.DrawScreenRectangle(wallpaper, image, screen);
             }
@@ -79,19 +79,19 @@ namespace Adhesive.Core
             using (FastBitmap imageBitmap = new FastBitmap(image))
             {
                 // Loop through all pixel rows
-                for (screenPosition.Y = screen.BoundsInSurface.Y; screenPosition.Y <
-                    screen.BoundsInSurface.Bottom; screenPosition.Y++)
+                for (screenPosition.Y = screen.Bounds.Y; screenPosition.Y <
+                    screen.Bounds.Bottom; screenPosition.Y++)
                 {
                     // Determine the vertical components of the image- and wallpaper positions
-                    imagePosition.Y = screen.BoundsInImage.Y + (screenPosition.Y - screen.BoundsInSurface.Y);
+                    imagePosition.Y = screen.BoundsInVirtualScreen.Y + (screenPosition.Y - screen.Bounds.Y);
                     wallpaperPosition.Y = screenPosition.Y >= 0 ? screenPosition.Y : wallpaper.Height + screenPosition.Y;
 
                     // Loop through all pixels in the current row
-                    for (screenPosition.X = screen.BoundsInSurface.X; screenPosition.X <
-                        screen.BoundsInSurface.Right; screenPosition.X++)
+                    for (screenPosition.X = screen.Bounds.X; screenPosition.X <
+                        screen.Bounds.Right; screenPosition.X++)
                     {
                         // Determine the horizontal components of the image- and wallpaper positions
-                        imagePosition.X = screen.BoundsInImage.X + (screenPosition.X - screen.BoundsInSurface.X);
+                        imagePosition.X = screen.BoundsInVirtualScreen.X + (screenPosition.X - screen.Bounds.X);
                         wallpaperPosition.X = screenPosition.X >= 0 ? screenPosition.X : wallpaper.Width + screenPosition.X;
 
                         // Assign the pixel data values at the image pixel position to the pixel at
@@ -161,13 +161,13 @@ namespace Adhesive.Core
 
         private void DrawScreenRectangle(Bitmap wallpaper, Bitmap image, Screen screen)
         {
-            System.Drawing.Rectangle destination = screen.BoundsInSurface;
+            System.Drawing.Rectangle destination = screen.Bounds;
             destination.X = destination.X >= 0 ? destination.X : wallpaper.Width + destination.X;
             destination.Y = destination.Y >= 0 ? destination.Y : wallpaper.Height + destination.Y;
 
             using (Graphics graphics = Graphics.FromImage(wallpaper))
             {
-                graphics.DrawImage(image, destination, screen.BoundsInImage, GraphicsUnit.Pixel);
+                graphics.DrawImage(image, destination, screen.BoundsInVirtualScreen, GraphicsUnit.Pixel);
             }
         }
 

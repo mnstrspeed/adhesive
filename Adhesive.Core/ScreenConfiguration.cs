@@ -1,13 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Generic;
 using System.Drawing;
 
 namespace Adhesive.Core
 {
+    public delegate void ChangedEventHandler(object sender, EventArgs e);
+
+    /// <summary>
+    /// Represents a collection of Screens and their properties in relation to one-another
+    /// </summary>
     public class ScreenConfiguration
     {
         private readonly ScreenDistributor screenDistributor;
+
+        /// <summary>
+        /// Event triggered whenever a ScreenConfiguration is updated
+        /// </summary>
+        public event ChangedEventHandler Changed;
+
         private Screen[] screens;
 
         /// <summary>
@@ -23,69 +34,132 @@ namespace Adhesive.Core
             {
                 this.screens = value;
 
-                // Update bounds
-                this.UpdateSurfaceBounds();
-
-                this.AssignScreenImageBounds();
-                this.UpdateImageSurfaceBounds();
+                this.UpdateMergedBounds();
+                this.UpdateVirtualScreen();
+                // Trigger Changed event
+                this.OnChanged();
             }
         }
 
         /// <summary>
-        /// The bounds of the combined screen surfaces as they are
-        /// assigned by Windows.
+        /// The merged bounds of Screens as they are assigned by Windows: the top left corner
+        /// of the primary screen has the coordinates (0,0)
         /// </summary>
-        public Rectangle SurfaceBounds { get; private set; }
+        public Rectangle MergedBounds { get; private set; }
 
         /// <summary>
-        /// The bounds of the surface the original image will be resized to.
+        /// Bounds of the VirtualScreen that will fit all Screens in the ScreenConfiguration
+        /// compensated for bezel size
         /// </summary>
-        public Rectangle ImageSurfaceBounds { get; private set; }
+        public Rectangle VirtualScreenBounds { get; private set; }
 
+        private int bezelCompensation;
+
+        /// <summary>
+        /// The bezel compensation between screens in pixels. Negative values indicate overlapping displays
+        /// </summary>
+        public int BezelCompensation
+        {
+            get
+            {
+                return this.bezelCompensation;
+            }
+            set
+            {
+                this.bezelCompensation = value;
+                this.UpdateVirtualScreen();
+                // Trigger Changed event
+                this.OnChanged();
+            }
+        }
+
+        /// <summary>
+        /// Initializes the ScreenConfiguration for a collection of Screens and
+        /// a default BezelCompensation of 0
+        /// </summary>
+        /// <param name="screens">Screens in the ScreenConfiguration</param>
         public ScreenConfiguration(Screen[] screens)
             : this(screens, 0)
         { }
 
+        /// <summary>
+        /// Initializes the ScreenConfiguration for a collection of Screens
+        /// with a specified BezelCompensation
+        /// </summary>
+        /// <param name="screens">Screens in the ScreenConfiguration</param>
+        /// <param name="bezelCompensation">The BezelCompensation in pixels as an added margin to screen 
+        /// bounds in a VirtualScreen to compensate for the display bezels in a multi-monitor setup</param>
         public ScreenConfiguration(Screen[] screens, int bezelCompensation) 
         {
             this.screenDistributor = new ScreenDistributor(this);
-            this.screenDistributor.BezelCompensation = bezelCompensation;
 
+            this.bezelCompensation = bezelCompensation; // private field so we don't trigger UpdateVirtualScreen() twice
             this.Screens = screens;
         }
 
         /// <summary>
-        /// Updates the merged surface bounds of all the screens
-        /// in the ScreenConfiguration
+        /// Initializes a ScreenConfiguration using the screens as provided by
+        /// System.Windows.Forms.Screen.AllScreens
         /// </summary>
-        private void UpdateSurfaceBounds()
+        /// <returns>The initialized ScreenConfiguration</returns>
+        public static ScreenConfiguration FromWindowsFormsScreens()
         {
-            var bounds = this.Screens.Select(s => s.BoundsInSurface);
-            this.SurfaceBounds = this.DetermineMergedBounds(bounds);
+            return new ScreenConfiguration(System.Windows.Forms.Screen.AllScreens.Select(
+                screen => new Adhesive.Core.Screen(screen)).ToArray());
+        }
+        
+        /// <summary>
+        /// Trigger a Changed event
+        /// </summary>
+        protected void OnChanged()
+        {
+            if (this.Changed != null)
+            {
+                Changed(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>
-        /// Assign Screen image bounds
+        /// Updates the merged bounds of all the screens in the ScreenConfiguration
         /// </summary>
-        private void AssignScreenImageBounds()
+        private void UpdateMergedBounds()
         {
-            this.screenDistributor.AssignScreenImageBounds();
+            var bounds = this.Screens.Select(s => s.Bounds);
+            this.MergedBounds = this.DetermineMergedBounds(bounds);
         }
 
         /// <summary>
-        /// Updates the merged image bounds of all the screens
-        /// in the ScreenConfiguration
+        /// Updates the properties related to the VirtualScreen, such as the
+        /// Screen.BoundsInVirtualScreen properties and VirtualScreenBounds
         /// </summary>
-        private void UpdateImageSurfaceBounds()
+        private void UpdateVirtualScreen()
         {
-            var bounds = this.Screens.Select(s => s.BoundsInImage);
-            Rectangle mergedBounds = this.DetermineMergedBounds(bounds);
-
-            this.ImageSurfaceBounds = new Rectangle(0, 0,
-                mergedBounds.Width, mergedBounds.Height);
+            this.AssignScreenBoundsInVirtualScreen();
+            this.UpdateVirtualScreenBounds();
         }
 
-        private Rectangle DetermineMergedBounds(IEnumerable<Rectangle> bounds)
+        /// <summary>
+        /// Assign the Screen.BoundsInVirtualScreen property of Screens in the ScreenConfiguration
+        /// </summary>
+        private void AssignScreenBoundsInVirtualScreen()
+        {
+            this.screenDistributor.AssignScreenBoundsInVirtualScreen();
+        }
+
+        /// <summary>
+        /// Updates the VirtualScreenBounds to fit the Screen.BoundsInVirtualScreen values
+        /// set by the ScreenDistributor
+        /// </summary>
+        private void UpdateVirtualScreenBounds()
+        {
+            var screenBounds = this.Screens.Select(s => s.BoundsInVirtualScreen);
+            Rectangle mergedScreenBounds = this.DetermineMergedBounds(screenBounds);
+
+            this.VirtualScreenBounds = new Rectangle(0, 0,
+                mergedScreenBounds.Width, mergedScreenBounds.Height);
+        }
+
+        private Rectangle DetermineMergedBounds(IEnumerable<Rectangle> bounds) // To RectangleHelper
         {
             Point offset = new Point(
                 bounds.Min(b => b.X),

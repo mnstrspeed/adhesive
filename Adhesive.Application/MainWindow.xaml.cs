@@ -13,32 +13,55 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Adhesive.Core;
 using System.Threading;
+using System.ComponentModel;
 
 namespace Adhesive.Application
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         public ScreenConfiguration ScreenConfiguration { get; private set; }
 
+        private string imagePath;
+        public string ImagePath
+        { 
+            get
+            {
+                return this.imagePath;
+            }
+            private set
+            {
+                this.imagePath = value;
+                OnPropertyChanged("ImagePath");
+            }
+        }
+
         public MainWindow()
         {
-            InitializeComponent();
+            this.ScreenConfiguration = ScreenConfiguration.FromWindowsFormsScreens();
 
-            this.ScreenConfiguration = new ScreenConfiguration(
-                System.Windows.Forms.Screen.AllScreens.Select(s => new Adhesive.Core.Screen(s)).ToArray(), 120);
-            wallpaperPreview.ScreenConfiguration = this.ScreenConfiguration;
-            wallpaperPreview.ImageResizer = new Adhesive.Core.Resizing.FillingImageResizer();
+            this.InitializeComponent();
+            this.wallpaperPreview.ScreenConfiguration = this.ScreenConfiguration;
+            this.wallpaperPreview.ImageResizer = new Adhesive.Core.Resizing.CenteringImageResizer();
+
+            this.AllowDrop = true;
+            this.Drop += new DragEventHandler(MainWindow_Drop);
+        }
+
+        void MainWindow_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
+                this.ImagePath = files[0]; // TODO: test file
+            }
         }
 
         private void bezelCompensationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            this.ScreenConfiguration = new ScreenConfiguration(System.Windows.Forms.Screen.AllScreens.Select(
-                s => new Adhesive.Core.Screen(s)).ToArray(), (int)e.NewValue);
-            this.wallpaperPreview.ScreenConfiguration = this.ScreenConfiguration;
-            this.wallpaperPreview.InvalidateVisual();
+            this.ScreenConfiguration.BezelCompensation = (int)e.NewValue;
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -55,5 +78,16 @@ namespace Adhesive.Application
 
             }).Start();
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
+
     }
 }
