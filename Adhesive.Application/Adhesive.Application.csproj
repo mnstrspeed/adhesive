@@ -9,7 +9,7 @@
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Adhesive.Application</RootNamespace>
-    <AssemblyName>Adhesive.Application</AssemblyName>
+    <AssemblyName>Adhesive</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -73,6 +73,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="BitmapConversion.cs" />
+    <Compile Include="MainWindowViewModel.cs" />
     <Compile Include="WallpaperPreview.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

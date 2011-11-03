@@ -2,22 +2,21 @@
 using System.Linq;
 using System.Collections.Generic;
 using System.Drawing;
+using System.ComponentModel;
 
 namespace Adhesive.Core
 {
-    public delegate void ChangedEventHandler(object sender, EventArgs e);
-
     /// <summary>
     /// Represents a collection of Screens and their properties in relation to one-another
     /// </summary>
-    public class ScreenConfiguration
+    public class ScreenConfiguration : INotifyPropertyChanged
     {
         private readonly ScreenDistributor screenDistributor;
 
         /// <summary>
         /// Event triggered whenever a ScreenConfiguration is updated
         /// </summary>
-        public event ChangedEventHandler Changed;
+        public event PropertyChangedEventHandler PropertyChanged;
 
         private Screen[] screens;
 
@@ -37,7 +36,7 @@ namespace Adhesive.Core
                 this.UpdateMergedBounds();
                 this.UpdateVirtualScreen();
                 // Trigger Changed event
-                this.OnChanged();
+                this.OnPropertyChanged("Screens");
             }
         }
 
@@ -69,7 +68,7 @@ namespace Adhesive.Core
                 this.bezelCompensation = value;
                 this.UpdateVirtualScreen();
                 // Trigger Changed event
-                this.OnChanged();
+                this.OnPropertyChanged("BezelCompensation");
             }
         }
 
@@ -106,17 +105,6 @@ namespace Adhesive.Core
         {
             return new ScreenConfiguration(System.Windows.Forms.Screen.AllScreens.Select(
                 screen => new Adhesive.Core.Screen(screen)).ToArray());
-        }
-        
-        /// <summary>
-        /// Trigger a Changed event
-        /// </summary>
-        protected void OnChanged()
-        {
-            if (this.Changed != null)
-            {
-                Changed(this, EventArgs.Empty);
-            }
         }
 
         /// <summary>
@@ -169,6 +157,14 @@ namespace Adhesive.Core
                 offset.X, offset.Y,
                 bounds.Max(b => b.X - offset.X + b.Width),
                 bounds.Max(b => b.Y - offset.Y + b.Height));
+        }
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            if (this.PropertyChanged != null)
+            {
+                this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            }
         }
 
     }
